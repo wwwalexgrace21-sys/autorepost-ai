@@ -85,7 +85,7 @@ if draft:
                 ]
                 font_path = next((p for p in candidates if Path(p).exists()), None)
             try:
-                engine = ImageFont.Layout.BASIC
+                engine = ImageFont.Layout.RAQM
                 if font_path:
                     title_font = ImageFont.truetype(font_path, 48, layout_engine=engine)
                     body_font = ImageFont.truetype(font_path, 38, layout_engine=engine)
@@ -109,11 +109,11 @@ if draft:
                 cx = int(w * (0.25 + 0.5 * ((i % 2))))
                 cy = int(h * 0.30)
                 d.ellipse((cx-65,cy-65,cx+65,cy+65), fill=(32,105,160), outline=(130,210,255), width=4)
-                d.text((65, int(h*0.43)), hook[:90], font=title_font, fill="white")
+                d.text((65, int(h*0.43)), hook[:90], font=title_font, fill="white", direction="ltr", language="my")
                 wrapped = textwrap.wrap(scene, width=25 if w < h else 48)
                 yy = int(h*0.56)
                 for line in wrapped[:6]:
-                    d.text((65,yy), line, font=body_font, fill=(225,235,245))
+                    d.text((65,yy), line, font=body_font, fill=(225,235,245), direction="ltr", language="my")
                     yy += 55
                 d.text((65,h-100), f"Scene {i}/{len(scenes)}", font=small_font, fill=(150,205,235))
                 p = work / f"scene_{i:02d}.png"
