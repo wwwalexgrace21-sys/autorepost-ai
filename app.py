@@ -66,13 +66,35 @@ if draft:
         with st.spinner("Creating your video. Please wait..."):
             work = Path(tempfile.mkdtemp(prefix="autopost_"))
             w, h = (720, 1280) if aspect.startswith("9:16") else (1280, 720)
-            font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+            # Streamlit Community Cloud installs Noto Sans Myanmar from packages.txt.
+            # Ask fontconfig for the actual font file rather than assuming a fixed path.
+            font_path = None
             try:
-                title_font = ImageFont.truetype(font_path, 48)
-                body_font = ImageFont.truetype(font_path, 38)
-                small_font = ImageFont.truetype(font_path, 24)
+                found = subprocess.run(
+                    ["fc-match", "-f", "%{file}", "Noto Sans Myanmar"],
+                    check=True, capture_output=True, text=True
+                ).stdout.strip()
+                if found and Path(found).exists():
+                    font_path = found
             except Exception:
-                title_font = body_font = small_font = ImageFont.load_default()
+                pass
+            if not font_path:
+                candidates = [
+                    "/usr/share/fonts/truetype/noto/NotoSansMyanmar-Regular.ttf",
+                    "/usr/share/fonts/truetype/noto/NotoSansMyanmarUI-Regular.ttf",
+                ]
+                font_path = next((p for p in candidates if Path(p).exists()), None)
+            try:
+                engine = ImageFont.Layout.RAQM
+                if font_path:
+                    title_font = ImageFont.truetype(font_path, 48, layout_engine=engine)
+                    body_font = ImageFont.truetype(font_path, 38, layout_engine=engine)
+                    small_font = ImageFont.truetype(font_path, 24, layout_engine=engine)
+                else:
+                    raise RuntimeError("Noto Sans Myanmar font not found")
+            except Exception:
+                st.error("မြန်မာ Font မတွေ့ပါ။ packages.txt မှ fonts-noto-core ကို install လုပ်ပြီးမှ ပြန်စမ်းပါ။")
+                st.stop()
             paths = []
             for i, scene in enumerate(scenes, 1):
                 im = Image.new("RGB", (w,h), (12, 22, 42))
@@ -87,11 +109,11 @@ if draft:
                 cx = int(w * (0.25 + 0.5 * ((i % 2))))
                 cy = int(h * 0.30)
                 d.ellipse((cx-65,cy-65,cx+65,cy+65), fill=(32,105,160), outline=(130,210,255), width=4)
-                d.text((65, int(h*0.43)), hook[:90], font=title_font, fill="white")
+                d.text((65, int(h*0.43)), hook[:90], font=title_font, fill="white", language="my")
                 wrapped = textwrap.wrap(scene, width=25 if w < h else 48)
                 yy = int(h*0.56)
                 for line in wrapped[:6]:
-                    d.text((65,yy), line, font=body_font, fill=(225,235,245))
+                    d.text((65,yy), line, font=body_font, fill=(225,235,245), language="my")
                     yy += 55
                 d.text((65,h-100), f"Scene {i}/{len(scenes)}", font=small_font, fill=(150,205,235))
                 p = work / f"scene_{i:02d}.png"
