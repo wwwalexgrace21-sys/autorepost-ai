@@ -21,6 +21,37 @@ uploaded = st.file_uploader("Choose an existing video", type=["mp4", "mov", "web
 if uploaded:
     st.video(uploaded)
     st.download_button("Download original video", uploaded.getvalue(), uploaded.name, mime=uploaded.type or "video/mp4")
+    st.markdown("#### Add Burmese voice to your uploaded video")
+    voice_script = st.text_area(
+        "စာဖတ်ပြမယ့် မြန်မာစာ",
+        placeholder="ဒီ Video မှာ ပြောစေချင်တဲ့ စာသားကို ဒီမှာရေးပါ...",
+        key="uploaded_voice_script"
+    )
+    if st.button("🔊 Add Burmese voice to uploaded video", disabled=not voice_script.strip()):
+        with st.spinner("Adding Burmese voice to your video..."):
+            work = Path(tempfile.mkdtemp(prefix="autopost_voice_"))
+            original = work / uploaded.name
+            original.write_bytes(uploaded.getvalue())
+            audio_path = work / "burmese_voice.mp3"
+            output = work / "video_with_burmese_voice.mp4"
+            ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+            try:
+                gTTS(text=voice_script[:4500], lang="my", slow=False).save(str(audio_path))
+                # Replace the original audio track with the Burmese narration.
+                cmd = [ffmpeg, "-y", "-i", str(original), "-i", str(audio_path),
+                       "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy",
+                       "-c:a", "aac", "-b:a", "128k", "-shortest",
+                       "-movflags", "+faststart", str(output)]
+                subprocess.run(cmd, check=True, capture_output=True)
+                st.session_state["uploaded_voice_video"] = output.read_bytes()
+                st.success("မြန်မာအသံကို Video ထဲ ထည့်ပြီးပါပြီ။ မူရင်း Video အသံကို အစားထိုးထားပါတယ်။")
+            except Exception as e:
+                st.error("အသံထည့်မရပါ။ Video format သို့မဟုတ် TTS အင်တာနက်ချိတ်ဆက်မှုကို စစ်ပါ။")
+    if st.session_state.get("uploaded_voice_video"):
+        st.video(st.session_state["uploaded_voice_video"])
+        st.download_button("⬇️ Download video with Burmese voice",
+                           st.session_state["uploaded_voice_video"],
+                           "autopost_burmese_voice.mp4", "video/mp4")
 
 st.divider()
 st.subheader("2. Create a simple motion video from a topic")
