@@ -2,3 +2,4 @@
 streamlit>=1.36
 Pillow>=10.0
 imageio-ffmpeg>=0.4.9
+gTTS>=2.5.4
